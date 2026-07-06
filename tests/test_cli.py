@@ -25,15 +25,24 @@ def test_bare_clswap_switches_from_session_file(env, tmp_path, monkeypatch, caps
     assert credentials_path().read_text(encoding="utf-8") == fake_credentials("a@x.com")
     assert "switched to a@x.com" in capsys.readouterr().out
 
-    # second run: already active -> silent success
+    # second run: already active -> reports which account is in use
     assert main([]) == 0
-    assert capsys.readouterr().out == ""
+    assert "using Claude credentials for a@x.com" in capsys.readouterr().out
 
 
-def test_bare_clswap_without_session_file_is_silent_noop(env, tmp_path, monkeypatch, capsys):
+def test_bare_clswap_without_session_file_reports_active_account(env, tmp_path, monkeypatch, capsys):
+    _setup_two_accounts()
     monkeypatch.chdir(tmp_path)
     assert main([]) == 0
-    assert capsys.readouterr().out == ""
+    out = capsys.readouterr().out
+    assert "using Claude credentials for" in out
+    assert "no .claude-session here" in out
+
+
+def test_bare_clswap_without_login_hints_at_login(env, tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert main([]) == 0
+    assert "not logged in" in capsys.readouterr().out
 
 
 def test_bare_clswap_unknown_account_errors(env, tmp_path, monkeypatch, capsys):

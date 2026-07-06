@@ -42,12 +42,18 @@ def _err(message: str) -> int:
 def cmd_auto() -> int:
     session_file = session.find_session_file(Path.cwd())
     if session_file is None:
+        active = switcher.read_active()
+        if active.email:
+            print(f"clswap: using Claude credentials for {active.email} (no .claude-session here)")
+        else:
+            print("clswap: not logged in to Claude - run `clswap login` (see `clswap help`)")
         return 0
     email = session.read_session_email(session_file)
     if email is None:
         return _err(f"{session_file} contains no account email")
     active = switcher.read_active()
     if active.email and active.email.lower() == email.lower():
+        print(f"clswap: using Claude credentials for {active.email} ({session_file})")
         return 0
     target = store.resolve(email)
     result = switcher.switch_to(target)
