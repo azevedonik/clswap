@@ -1,7 +1,8 @@
 import pytest
 
-from clman import store
-from clman.errors import ClmanError, UnknownAccountError
+from clswap import store
+from clswap.errors import ClmanError, UnknownAccountError
+from clswap.paths import accounts_dir, default_account_path
 
 
 def test_upsert_and_get(env):
@@ -43,6 +44,14 @@ def test_remove(env):
     store.upsert("a@x.com", "creds-a", {})
     store.remove("a@x.com")
     assert store.get("a@x.com") is None
+
+
+def test_clswap_home_takes_precedence_for_store_root(env, monkeypatch, tmp_path):
+    monkeypatch.setenv("CLMAN_HOME", str(tmp_path / "clman-home"))
+    monkeypatch.setenv("CLSWAP_HOME", str(tmp_path / "clswap-home"))
+
+    assert accounts_dir() == tmp_path / "clswap-home" / "accounts"
+    assert default_account_path() == tmp_path / "clswap-home" / "default"
 
 
 @pytest.mark.parametrize("bad", ["", "no-at-sign", "a/b@x.com", "a b@x.com"])

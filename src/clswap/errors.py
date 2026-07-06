@@ -1,4 +1,4 @@
-"""clman exception hierarchy. The CLI turns any ClmanError into stderr + exit 1."""
+"""clswap exception hierarchy. The CLI turns any ClmanError into stderr + exit 1."""
 
 from __future__ import annotations
 

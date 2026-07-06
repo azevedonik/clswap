@@ -2,9 +2,9 @@ import json
 
 import pytest
 
-from clman import store, switcher
-from clman.errors import NotLoggedInError
-from clman.paths import credentials_path, global_config_path
+from clswap import store, switcher
+from clswap.errors import NotLoggedInError
+from clswap.paths import credentials_path, global_config_path
 from conftest import fake_credentials, fake_login
 
 

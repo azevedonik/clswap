@@ -1,11 +1,11 @@
-"""The account store: one JSON snapshot per account under ``~/.clman/accounts``.
+"""The account store: one JSON snapshot per account under ``~/.clswap/accounts``.
 
 Emails are the stable identifier; list numbers are 1-based positions ordered
 by ``addedAt`` (then email), recomputed on every load.
 
 The metadata JSON always lives in a file. The credential *secret* lives inline
 in that file on Windows/Linux/WSL; on macOS it goes to the Keychain (service
-``clman``) when usable, with ``"credentials": null`` marking the placement,
+``clswap``) when usable, with ``"credentials": null`` marking the placement,
 and falls back inline when the Keychain isn't. Reads are **file-wins**: inline
 credentials (written while the Keychain was down, hence fresher) beat a
 possibly-stale Keychain copy — which is why a successful Keychain write must
@@ -22,10 +22,10 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from clman import keychain
-from clman.errors import ClmanError, UnknownAccountError
-from clman.fsio import atomic_write_text
-from clman.paths import accounts_dir
+from clswap import keychain
+from clswap.errors import ClmanError, UnknownAccountError
+from clswap.fsio import atomic_write_text
+from clswap.paths import accounts_dir, default_account_path
 
 # Conservative: covers real emails while guaranteeing a valid Windows filename.
 _SAFE_EMAIL = re.compile(r"^[A-Za-z0-9._%+@-]+$")
@@ -97,6 +97,34 @@ def get(email: str) -> Account | None:
     return _load_file(path) if path.is_file() else None
 
 
+def read_default_email() -> str | None:
+    path = default_account_path()
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    for line in text.splitlines():
+        line = line.strip()
+        if line and not line.startswith("#"):
+            return line
+    return None
+
+
+def write_default_email(email: str) -> None:
+    atomic_write_text(default_account_path(), validate_email(email) + "\n")
+
+
+def clear_default_email(email: str | None = None) -> None:
+    if email is not None:
+        current = read_default_email()
+        if current is None or current.lower() != email.lower():
+            return
+    try:
+        default_account_path().unlink()
+    except FileNotFoundError:
+        pass
+
+
 def _kc_account(email: str) -> str:
     return f"account-{email.lower()}"
 
@@ -117,6 +145,8 @@ def upsert(email: str, credentials: str, oauth_account: dict) -> tuple[Account, 
                 keychain.set_password, keychain.SNAPSHOT_SERVICE, _kc_account(email), credentials
             )
             inline = None
+            if keychain.is_macos():
+                _delete_keychain_snapshot_quiet(email, keychain.LEGACY_SNAPSHOT_SERVICE)
         except keychain.KEYCHAIN_ERRORS as e:
             print(
                 f"clswap: warning: Keychain write failed, storing in file: {e}",
@@ -148,23 +178,24 @@ def load_credentials(account: Account) -> str:
     if account.credentials:
         return account.credentials
     if keychain.is_macos():
-        try:
-            return (
-                keychain.call(
+        for service in (keychain.SNAPSHOT_SERVICE, keychain.LEGACY_SNAPSHOT_SERVICE):
+            try:
+                credentials = keychain.call(
                     keychain.get_password,
-                    keychain.SNAPSHOT_SERVICE,
+                    service,
                     _kc_account(account.email),
                 )
-                or ""
-            )
-        except keychain.KEYCHAIN_ERRORS as e:
-            print(f"clswap: warning: Keychain read failed: {e}", file=sys.stderr)
+            except keychain.KEYCHAIN_ERRORS as e:
+                print(f"clswap: warning: Keychain read failed: {e}", file=sys.stderr)
+                return ""
+            if credentials:
+                return credentials
     return ""
 
 
-def _delete_keychain_snapshot_quiet(email: str) -> None:
+def _delete_keychain_snapshot_quiet(email: str, service: str = keychain.SNAPSHOT_SERVICE) -> None:
     try:
-        keychain.delete_password(keychain.SNAPSHOT_SERVICE, _kc_account(email))
+        keychain.delete_password(service, _kc_account(email))
     except Exception:
         pass  # best-effort: a down Keychain can't be cleaned now
 
@@ -173,6 +204,7 @@ def remove(email: str) -> None:
     account_path(email).unlink()
     if keychain.is_macos():
         _delete_keychain_snapshot_quiet(email)
+        _delete_keychain_snapshot_quiet(email, keychain.LEGACY_SNAPSHOT_SERVICE)
 
 
 def resolve(selector: str, accounts: list[Account] | None = None) -> Account:

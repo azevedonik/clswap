@@ -4,7 +4,7 @@ import subprocess
 
 import pytest
 
-from clman import keychain
+from clswap import keychain
 
 
 class Result:

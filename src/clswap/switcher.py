@@ -13,10 +13,10 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
-from clman import credstore, locks, store
-from clman.errors import ClmanError, NotLoggedInError
-from clman.fsio import atomic_write_text
-from clman.paths import global_config_path
+from clswap import credstore, locks, store
+from clswap.errors import ClmanError, NotLoggedInError
+from clswap.fsio import atomic_write_text
+from clswap.paths import global_config_path
 
 
 @dataclass

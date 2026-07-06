@@ -1,4 +1,4 @@
-from clman.session import SESSION_FILENAME, find_session_file, read_session_email
+from clswap.session import SESSION_FILENAME, find_session_file, read_session_email
 
 
 def test_finds_file_in_start_dir(tmp_path):

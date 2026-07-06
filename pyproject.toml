@@ -1,5 +1,5 @@
 [project]
-name = "clman"
+name = "clswap"
 version = "0.2.0"
 description = "Per-project Claude Code account switching, driven by a .claude-session file"
 readme = "README.md"
@@ -8,14 +8,14 @@ license = { text = "MIT" }
 dependencies = []
 
 [project.scripts]
-clswap = "clman.cli:main"
+clswap = "clswap.cli:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/clman"]
+packages = ["src/clswap"]
 
 [dependency-groups]
 dev = ["pytest>=8"]

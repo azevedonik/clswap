@@ -24,8 +24,8 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
-from clman.errors import LockTimeoutError
-from clman.paths import claude_config_home, global_config_path
+from clswap.errors import LockTimeoutError
+from clswap.paths import claude_config_home, global_config_path
 
 STALENESS_S = 10.0
 TOUCH_INTERVAL_S = 3.0

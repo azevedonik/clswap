@@ -19,10 +19,10 @@ from __future__ import annotations
 
 import sys
 
-from clman import keychain
-from clman.errors import ClmanError
-from clman.fsio import atomic_write_text
-from clman.paths import credentials_path
+from clswap import keychain
+from clswap.errors import ClmanError
+from clswap.fsio import atomic_write_text
+from clswap.paths import credentials_path
 
 
 def _warn(message: str) -> None:

@@ -38,8 +38,9 @@ _STDIN_LINE_LIMIT = 4096 - 64
 
 # Keychain service of Claude Code's active OAuth credential (its own name).
 ACTIVE_SERVICE = "Claude Code-credentials"
-# Keychain service for clman's per-account snapshots.
-SNAPSHOT_SERVICE = "clman"
+# Keychain service for clswap's per-account snapshots.
+SNAPSHOT_SERVICE = "clswap"
+LEGACY_SNAPSHOT_SERVICE = "clman"
 
 
 class KeychainError(Exception):

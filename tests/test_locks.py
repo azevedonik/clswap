@@ -3,8 +3,8 @@ import time
 
 import pytest
 
-from clman.errors import LockTimeoutError
-from clman.locks import proper_lockfile
+from clswap.errors import LockTimeoutError
+from clswap.locks import proper_lockfile
 
 
 def test_acquire_creates_and_releases_dir(tmp_path):

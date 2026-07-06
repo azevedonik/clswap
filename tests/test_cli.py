@@ -1,9 +1,9 @@
 import json
 
-from clman import store, switcher
-from clman.cli import main
-from clman.paths import credentials_path
-from clman.session import SESSION_FILENAME
+from clswap import store, switcher
+from clswap.cli import main
+from clswap.paths import credentials_path
+from clswap.session import SESSION_FILENAME
 from conftest import fake_credentials, fake_login
 
 
@@ -37,6 +37,62 @@ def test_bare_clswap_without_session_file_reports_active_account(env, tmp_path, 
     out = capsys.readouterr().out
     assert "using Claude credentials for" in out
     assert "no .claude-session here" in out
+
+
+def test_default_command_sets_default_to_active_account(env, tmp_path, monkeypatch, capsys):
+    _setup_two_accounts()
+    monkeypatch.chdir(tmp_path)
+
+    assert main(["default"]) == 0
+    assert "Default account: b@x.com" in capsys.readouterr().out
+
+    assert main(["status"]) == 0
+    assert "Default account: b@x.com" in capsys.readouterr().out
+
+
+def test_default_command_sets_default_by_selector(env, tmp_path, monkeypatch, capsys):
+    _setup_two_accounts()
+    monkeypatch.chdir(tmp_path)
+
+    assert main(["default", "a@x.com"]) == 0
+    assert "Default account: a@x.com" in capsys.readouterr().out
+
+
+def test_bare_clswap_uses_default_when_no_session_file(env, tmp_path, monkeypatch, capsys):
+    _setup_two_accounts()
+    assert main(["default", "a@x.com"]) == 0
+    capsys.readouterr()
+    monkeypatch.chdir(tmp_path)
+
+    assert main([]) == 0
+    assert credentials_path().read_text(encoding="utf-8") == fake_credentials("a@x.com")
+    assert "switched to a@x.com" in capsys.readouterr().out
+
+
+def test_session_file_takes_precedence_over_default(env, tmp_path, monkeypatch, capsys):
+    _setup_two_accounts()
+    assert main(["default", "a@x.com"]) == 0
+    capsys.readouterr()
+    project = tmp_path / "project"
+    project.mkdir()
+    (project / SESSION_FILENAME).write_text("b@x.com\n")
+    monkeypatch.chdir(project)
+
+    assert main([]) == 0
+    assert credentials_path().read_text(encoding="utf-8") == fake_credentials("b@x.com")
+    assert "using Claude credentials for b@x.com" in capsys.readouterr().out
+
+
+def test_remove_clears_matching_default_account(env, tmp_path, monkeypatch, capsys):
+    _setup_two_accounts()
+    monkeypatch.chdir(tmp_path)
+
+    assert main(["default", "a@x.com"]) == 0
+    assert main(["remove", "a@x.com"]) == 0
+    capsys.readouterr()
+
+    assert main(["status"]) == 0
+    assert "Default account: none" in capsys.readouterr().out
 
 
 def test_bare_clswap_without_login_hints_at_login(env, tmp_path, monkeypatch, capsys):

@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.12"
 
 [[package]]
-name = "clman"
+name = "clswap"
 version = "0.2.0"
 source = { editable = "." }
 

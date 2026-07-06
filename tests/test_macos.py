@@ -2,10 +2,10 @@
 
 import json
 
-from clman import credstore, keychain, store, switcher
-from clman.cli import main
-from clman.paths import credentials_path, global_config_path
-from clman.session import SESSION_FILENAME
+from clswap import credstore, keychain, store, switcher
+from clswap.cli import main
+from clswap.paths import credentials_path, global_config_path
+from clswap.session import SESSION_FILENAME
 from conftest import fake_credentials
 
 
@@ -59,7 +59,16 @@ def test_snapshot_secret_lives_in_keychain_not_file(mac):
     raw = json.loads(account.path.read_text(encoding="utf-8"))
     assert raw["credentials"] is None
     assert "creds-a" not in account.path.read_text(encoding="utf-8")
+    assert (keychain.SNAPSHOT_SERVICE, "account-a@x.com") in mac.items
+    assert keychain.SNAPSHOT_SERVICE == "clswap"
     assert store.load_credentials(account) == "creds-a"
+
+
+def test_snapshot_secret_reads_legacy_clman_keychain_item(mac):
+    account = store.Account("a@x.com", None, {}, "", "")
+    mac.items[("clman", "account-a@x.com")] = "legacy-creds"
+
+    assert store.load_credentials(account) == "legacy-creds"
 
 
 def test_snapshot_broken_keychain_falls_back_inline(mac, capsys):

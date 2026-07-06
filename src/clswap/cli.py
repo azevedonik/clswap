@@ -2,10 +2,10 @@
 
 Grammar (see README for the contract):
 
-    clswap                      auto-swap from .claude-session (silent no-op)
+    clswap                      auto-swap from .claude-session, or default fallback
     clswap <email|N>            switch (shorthand)
     clswap switch <email|N>
-    clswap add | login | list | status | remove <email|N> | session [email] | help
+    clswap add | login | list | status | remove <email|N> | session [email] | default [email|N] | help
 """
 
 from __future__ import annotations
@@ -15,20 +15,21 @@ import subprocess
 import sys
 from pathlib import Path
 
-from clman import __version__, session, store, switcher
-from clman.errors import ClmanError
+from clswap import __version__, session, store, switcher
+from clswap.errors import ClmanError
 
 USAGE = """\
 clswap - per-project Claude Code account switching
 
 usage:
-  clswap                     auto-swap from the nearest .claude-session (silent no-op)
+  clswap                     auto-swap from the nearest .claude-session, or default fallback
   clswap <email|N>           switch to a stored account (also: clswap switch <email|N>)
   clswap add                 snapshot the currently logged-in account
   clswap login               run `claude /login`, then snapshot the new account
   clswap list                stored accounts (active one marked)
   clswap status              active account + applicable .claude-session
   clswap session [email]     write .claude-session here (default: active account)
+  clswap default [email|N]   set fallback account when no .claude-session applies
   clswap remove <email|N>    delete an account snapshot
   clswap help                this text (--version prints the version)
 """
@@ -42,6 +43,15 @@ def _err(message: str) -> int:
 def cmd_auto() -> int:
     session_file = session.find_session_file(Path.cwd())
     if session_file is None:
+        default_email = store.read_default_email()
+        if default_email is not None:
+            target = store.resolve(default_email)
+            result = switcher.switch_to(target)
+            if result.switched:
+                print(f"clswap: switched to {result.to_email} (default)")
+            else:
+                print(f"clswap: using Claude credentials for {result.to_email} (default)")
+            return 0
         active = switcher.read_active()
         if active.email:
             print(f"clswap: using Claude credentials for {active.email} (no .claude-session here)")
@@ -112,6 +122,8 @@ def cmd_status() -> int:
         print(f"Session file:   {session_file} -> {session.read_session_email(session_file)}")
     else:
         print("Session file:   none found")
+    default_email = store.read_default_email()
+    print(f"Default account: {default_email or 'none'}")
     return 0
 
 
@@ -129,9 +141,21 @@ def cmd_session(email: str | None) -> int:
     return 0
 
 
+def cmd_default(selector: str | None) -> int:
+    if selector is None:
+        selector = switcher.read_active().email
+        if not selector:
+            return _err("not logged in and no account given")
+    target = store.resolve(selector)
+    store.write_default_email(target.email)
+    print(f"Default account: {target.email}")
+    return 0
+
+
 def cmd_remove(selector: str) -> int:
     account = store.resolve(selector)
     store.remove(account.email)
+    store.clear_default_email(account.email)
     print(f"Removed {account.email}")
     return 0
 
@@ -165,6 +189,10 @@ def main(argv: list[str] | None = None) -> int:
                 if len(rest) > 1:
                     return _err("usage: clswap session [email]")
                 return cmd_session(rest[0] if rest else None)
+            case "default":
+                if len(rest) > 1:
+                    return _err("usage: clswap default [email|N]")
+                return cmd_default(rest[0] if rest else None)
             case "remove":
                 if len(rest) != 1:
                     return _err("usage: clswap remove <email|N>")

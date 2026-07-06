@@ -2,17 +2,17 @@ import json
 
 import pytest
 
-from clman import keychain
-from clman.paths import claude_config_home, credentials_path, global_config_path
+from clswap import keychain
+from clswap.paths import claude_config_home, credentials_path, global_config_path
 
 
 @pytest.fixture
 def env(tmp_path, monkeypatch):
-    """Point clman and the Claude Code paths at an isolated temp layout."""
+    """Point clswap and the Claude Code paths at an isolated temp layout."""
     claude_home = tmp_path / "claude-home"
     claude_home.mkdir()
     monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(claude_home))
-    monkeypatch.setenv("CLMAN_HOME", str(tmp_path / "clman-home"))
+    monkeypatch.setenv("CLSWAP_HOME", str(tmp_path / "clswap-home"))
     return tmp_path
 
 
